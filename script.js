@@ -1,5 +1,6 @@
 const sudokuTableValues = [];
 
+// set up sudoku Table
 const cellTemplate = (row, col) => {
   let template = `
         <div class="cell" row=${row} col=${col}>
@@ -29,7 +30,7 @@ const createSudokuTemplate = () => {
       sudokuTableValues.push({
         row: row,
         col: col,
-        table: Math.floor((row - 1) / 3) * 3 + Math.floor((col - 1) / 3) + 1
+        table: Math.floor((row - 1) / 3) * 3 + Math.floor((col - 1) / 3) + 1,
       });
 
       sudokuTable = sudokuTable + cellTemplate(row, col);
@@ -40,168 +41,10 @@ const createSudokuTemplate = () => {
   validateCell();
 };
 
-// create sudoku template
-createSudokuTemplate();
 
-// start to solve sudoku
-const solveSudoku = () => {
-  // update value
-  sudokuTableValues.forEach((cell) => {
-    let value = document
-      .querySelector(`.cell[row='${cell.row}'][col='${cell.col}']`)
-      .querySelector(".cell-value").value;
-    let note = document
-      .querySelector(`.cell[row='${cell.row}'][col='${cell.col}']`)
-      .querySelector(".cell-note").innerHTML;
-    cell.value = value;
-    cell.note = note;
-  });
-
-  //   solveSudoku
-  sudokuTableValues.forEach((cell) => {
-    cell.note = "";
-    if (cell.value) {
-      return;
-    }
-
-    let cellNote = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
-
-    // sovle the cell have only one value
-    sudokuTableValues.forEach((cellCompare) => {
-      if (!cellCompare.value) {
-        return;
-      }
-      if (
-        cellCompare.row === cell.row ||
-        cellCompare.col === cell.col ||
-        cellCompare.table === cell.table
-      ) {
-        if (cellNote.includes(cellCompare.value)) {
-          console.log(cellNote);
-          cellNote = cellNote.filter((value) => value !== cellCompare.value);
-        }
-      }
-    });
-    if (cellNote.length === 1) {
-      cell.value = cellNote[0];
-    } else {
-      cell.note = cellNote;
-    }
-  });
-
-  // solve the value have only one cell
-  for (let i = 1; i < 10; i++) {
-    let rngValues = sudokuTableValues.filter((value) => (value.table = i));
-    let rngNote = [];
-    rngValues.forEach((cell) => {
-      if (!cell.value) {
-        rngNote.push(cell.note);
-      }
-    });
-    for (let note = 1; note < 10; note++) {
-      if (rngNote.filter((value) => value === note).length === 1) {
-        let cell = rngValues.filter((value) => value.note.includes(note));
-        cell.value = note;
-        cell.note = "";
-      }
-    }
-  }
-
-  //solve the value appear only in row or col of rng
-  for (let i = 1; i < 10; i++) {
-    let rngValues = sudokuTableValues.filter((value) => value.table === i);
-    rngValues.forEach((rng) => {
-      for (let note = 1; note < 10; note++) {
-        // check in row
-        let rowListInRng = [
-          ...rng
-            .filter((cell) => cell.note.includes(note))
-            .map((cell) => cell.row)
-        ];
-        if (rowListInRng.length === 1) {
-          let rowValues = sudokuTableValues.filter(
-            (cell) => (cell.row = rowListInRng[0])
-          );
-          rowValues.forEach((cell) => {
-            if (cell.table !== i) {
-              cell.note = cell.note.filter((value) => value !== note);
-            }
-          });
-        }
-        // check in col
-        let colListInRng = [
-          ...rng
-            .filter((cell) => cell.note.includes(note))
-            .map((cell) => cell.col)
-        ];
-        if (colListInRng.length === 1) {
-          let colValues = sudokuTableValues.fill(
-            (cell) => (cell.col = colListInRng[0])
-          );
-          colValues.forEach((cell) => {
-            if (cell.table !== i) {
-              cell.note = cell.note.filter((value) => value !== note);
-            }
-          });
-        }
-      }
-    });
-  }
-
-  // solve group of value in one row, col
-  for (let rngIndex = 1; rngIndex < 10; rngIndex++) {
-    let rngValues = sudokuTableValues.filter((cell) => cell.table === rngIndex);
-    rngValues.forEach((rng) => {
-      for (let i = 1; i < 10; i++) {
-        // check row
-        let blankRowCellInRng = rng.filter(
-          (cell) => cell.row === i && cell.value === ""
-        );
-        let noteRowList = blankRowCellInRng.reduce(
-          (prev, cur) => prev.push(cur),
-          []
-        );
-        if (new Set(noteRowList).size === blankRowCellInRng.length) {
-          let rowValues = sudokuTableValues.filter((cell) => cell.row === i);
-          rowValues.forEach((cell) => {
-            if (cell.table !== i) {
-              cell.note = cell.note.filter(
-                (value) => !noteRowList.includes(value)
-              );
-            }
-          });
-        }
-        // check col
-        let blankColCellInRng = rng.filter(
-          (cell) => cell.row === i && cell.value === ""
-        );
-        let noteColList = blankColCellInRng.reduce(
-          (prev, cur) => prev.push(cur),
-          []
-        );
-        if (new Set(noteColList).size === blankColCellInRng.length) {
-          let colValues = sudokuTableValues.filter((cell) => cell.col === i);
-          colValues.forEach((cell) => {
-            if (cell.table !== i) {
-              cell.note = cell.note.filter(
-                (value) => !noteColList.includes(value)
-              );
-            }
-          });
-        }
-      }
-    });
-  }
-
-  sudokuTableValues.forEach((cell) => {
-    if (cell.note.length === 1) {
-      cell.value = cell.note[0];
-      cell.note = "";
-    }
-  });
-
-  //   return result
-  sudokuTableValues.forEach((cell) => {
+// show and update
+const showSudoku = (sudokuTable) => {
+  sudokuTable.forEach((cell) => {
     document
       .querySelector(`.cell[row='${cell.row}'][col='${cell.col}']`)
       .querySelector(".cell-value").value = cell.value;
@@ -211,5 +54,253 @@ const solveSudoku = () => {
   });
 };
 
+const updateSudoku = () => {
+  sudokuTableValues.forEach((cell) => {
+    let value = document
+      .querySelector(`.cell[row='${cell.row}'][col='${cell.col}']`)
+      .querySelector(".cell-value").value;
+    let note = document
+      .querySelector(`.cell[row='${cell.row}'][col='${cell.col}']`)
+      .querySelector(".cell-note").innerHTML;
+    cell.value = value;
+    cell.note = note===""? "":note.split();
+  });
+};  
+
+const refreshSudoku = () => {
+  showSudoku(sudokuTableValues);
+  updateSudoku();
+}
+
+// solve logic
+
+const getCells = (type, index) => {
+  return sudokuTableValues.filter((cell) => cell[type] === index);
+};
+
+// cell has only one value
+const solveCellHaveOnlyValue = () => {
+  console.log ('start',sudokuTableValues)
+  sudokuTableValues.forEach((cell) => {
+    if (cell.value) {
+      return;
+    }
+    if (!cell.note){cell.note = [1,2,3,4,5,6,7,8,9]}
+    sudokuTableValues.forEach((cellCompare) => {
+      if (!cellCompare.value) {
+        return;
+      }
+
+      if (
+        cellCompare.row === cell.row ||
+        cellCompare.col === cell.col ||
+        cellCompare.table === cell.table
+      ) {
+        if (cell.note.includes(parseInt(cellCompare.value))) {          
+          cell.note = cell.note.filter((value) => value !== parseInt(cellCompare.value));
+        }
+      }
+    });
+  });
+  sudokuTableValues.forEach((cell) => {
+    if (cell.note.length === 1) {
+      cell.value = cell.note[0];
+      cell.note = "";
+    }
+  });
+};
+
+// value in only one cell in a range
+const solveValueHaveOnlyOneCell = () => {
+  for (let i = 1; i < 10; i++) {
+    let rngValues = getCells("table", i);
+
+    for (let note = 1; note < 10; note++) {
+      let cells = rngValues.filter((cell) =>
+        cell.note.includes(note.toString())
+      );
+      if (cells.length === 1) {
+        cells[0].value = note;
+        cells[0].note = "";
+      }
+    }
+  }
+};
+
+// value in one row or col
+const solveValueInOnlyRC = () => {
+  for (let i = 1; i < 10; i++) {
+    let rngValues = getCells("table", i);
+
+    for (let note = 1; note < 10; note++) {
+      // check in row
+      let rowListInRng = rngValues
+        .filter((cell) => cell.note.includes(note.toString()))
+        .reduce((prev, cur) => [...prev, cur.row], []);
+
+      if (new Set(rowListInRng).size === 1) {
+        let rowValues = getCells("row", rowListInRng[0]);
+        rowValues.forEach((cell) => {
+          if (cell.table !== i && !cell.value) {
+            cell.note = cell.note.filter((value) => value !== note.toString());
+          }
+        });
+      }
+      // check in col
+      let colListInRng = rngValues
+        .filter((cell) => cell.note.includes(note.toString()))
+        .reduce((prev, cur) => [...prev, cur.col], []);
+      if (new Set(colListInRng).size === 1) {
+        let colValues = getCells("col", colListInRng[0]);
+        colValues.forEach((cell) => {
+          if (cell.table !== i && !cell.value) {
+            cell.note = cell.note.filter((value) => value !== note.toString());
+          }
+        });
+      }
+    }
+  }
+};
+
+// value in row, col of range
+const solveValueGroupInRowCol = () => {
+  for (let rngIndex = 1; rngIndex < 10; rngIndex++) {
+    let rngValues = getCells("table", rngIndex);
+
+    for (let i = 1; i < 10; i++) {
+      // check row
+      let blankRowCellInRng = rngValues.filter(
+        (cell) => cell.row === i && !cell.value
+      );
+      if (blankRowCellInRng.length === 0) {
+        continue;
+      }
+
+      let noteRowList = blankRowCellInRng.reduce(
+        (prev, cur) => [...prev, ...cur.note],
+        []
+      );
+
+      if (new Set(noteRowList).size === blankRowCellInRng.length) {
+        let rowValues = getCells("row", i);
+
+        // remove note in same row but in other range
+        rowValues.forEach((cell) => {
+          if (cell.table !== rngIndex && !cell.value) {
+            cell.note = cell.note.filter(
+              (value) => !noteRowList.includes(value.toString())
+            );
+          }
+        });
+        // remove note in other cell in same range
+        rngValues.forEach((cell) => {
+          if (!cell.value && cell.row !== i) {
+            cell.note = cell.note.filter(
+              (value) => !noteRowList.includes(value.toString())
+            );
+          }
+        });
+      }
+      // check col
+      let blankColCellInRng = rngValues.filter(
+        (cell) => cell.col === i && cell.value === ""
+      );
+      let noteColList = blankColCellInRng.reduce(
+        (prev, cur) => [...prev, ...cur.note],
+        []
+      );
+      if (new Set(noteColList).size === blankColCellInRng.length) {
+        let colValues = getCells("col", i);
+        colValues.forEach((cell) => {
+          if (cell.table !== i && !cell.value) {
+            cell.note = cell.note.filter(
+              (value) => !noteColList.includes(value.toString())
+            );
+          }
+        });
+        // remove note in other cell in same range
+        rngValues.forEach((cell) => {
+          if (!cell.value && cell.col !== i) {
+            cell.note = cell.note.filter(
+              (value) => !noteColList.includes(value.toString())
+            );
+          }
+        });
+      }
+    }
+  }
+};
+
+
+// create sudoku template
+createSudokuTemplate();
+
+// start to solve sudoku
+function solveSudoku() {
+  // update value
+  updateSudoku();
+  console.log('after update', sudokuTableValues);
+  //   solveSudoku
+  solveCellHaveOnlyValue();
+  // refreshSudoku()
+  // console.log(sudokuTableValues);
+  // // solve the value have only one cell
+  solveValueHaveOnlyOneCell();
+
+  // // refreshSudoku()
+  // console.log(sudokuTableValues);
+
+  // //solve the value appear only in row or col of rng
+  // solveValueInOnlyRC();
+
+  // // refreshSudoku()
+  // console.log(sudokuTableValues);
+
+  // // solve group of value in one row, col
+  // solveValueGroupInRowCol();
+  // // refreshSudoku()
+  // console.log(sudokuTableValues);
+
+  // solveValueHaveOnlyOneCell();
+
+  sudokuTableValues.forEach((cell) => {
+    if (cell.note.length === 1) {
+      cell.value = cell.note[0];
+      cell.note = "";
+    }
+  });
+
+  //   return result
+  showSudoku(sudokuTableValues);
+}
+
+
+// button function
+const clearSudoku = () => {
+  sudokuTableValues.forEach((cell) => {
+    cell.value = "";
+    cell.note = [];
+  });
+  showSudoku(sudokuTableValues);
+};
+
+const saveSudoku = () => {
+  updateSudoku();
+  localStorage.setItem("saveSudoku", JSON.stringify(sudokuTableValues));
+};
+
+const loadSudoku = () => {
+  showSudoku(JSON.parse(localStorage.getItem("saveSudoku")));
+};
+
 const startButton = document.querySelector(".start");
 startButton.addEventListener("click", solveSudoku);
+
+const saveButton = document.querySelector(".save");
+saveButton.addEventListener("click", saveSudoku);
+
+const loadButton = document.querySelector(".load");
+loadButton.addEventListener("click", loadSudoku);
+
+const clearButton = document.querySelector(".clear");
+clearButton.addEventListener("click", clearSudoku);
