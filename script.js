@@ -1,4 +1,4 @@
-const sudokuTableValues = [];
+var sudokuTableValues = [];
 
 // set up sudoku Table
 const cellTemplate = (row, col) => {
@@ -30,7 +30,7 @@ const createSudokuTemplate = () => {
       sudokuTableValues.push({
         row: row,
         col: col,
-        table: Math.floor((row - 1) / 3) * 3 + Math.floor((col - 1) / 3) + 1,
+        table: Math.floor((row - 1) / 3) * 3 + Math.floor((col - 1) / 3) + 1
       });
 
       sudokuTable = sudokuTable + cellTemplate(row, col);
@@ -41,10 +41,9 @@ const createSudokuTemplate = () => {
   validateCell();
 };
 
-
 // show and update
-const showSudoku = (sudokuTable) => {
-  sudokuTable.forEach((cell) => {
+const showSudoku = () => {
+  sudokuTableValues.forEach((cell) => {
     document
       .querySelector(`.cell[row='${cell.row}'][col='${cell.col}']`)
       .querySelector(".cell-value").value = cell.value;
@@ -61,16 +60,15 @@ const updateSudoku = () => {
       .querySelector(".cell-value").value;
     let note = document
       .querySelector(`.cell[row='${cell.row}'][col='${cell.col}']`)
-      .querySelector(".cell-note").innerHTML;
+      .querySelector(".cell-note").textContent;
     cell.value = value;
-    cell.note = note===""? "":note.split();
+    if (note === "") {
+      cell.note = [];
+    } else {
+      cell.note = note.split(",").map((value) => parseInt(value));
+    }
   });
-};  
-
-const refreshSudoku = () => {
-  showSudoku(sudokuTableValues);
-  updateSudoku();
-}
+};
 
 // solve logic
 
@@ -80,28 +78,23 @@ const getCells = (type, index) => {
 
 // cell has only one value
 const solveCellHaveOnlyValue = () => {
-  console.log ('start',sudokuTableValues)
   sudokuTableValues.forEach((cell) => {
     if (cell.value) {
       return;
     }
-    if (!cell.note){cell.note = [1,2,3,4,5,6,7,8,9]}
-    sudokuTableValues.forEach((cellCompare) => {
-      if (!cellCompare.value) {
-        return;
-      }
+    if (cell.note.length === 0) {
+      cell.note = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    }
 
-      if (
-        cellCompare.row === cell.row ||
-        cellCompare.col === cell.col ||
-        cellCompare.table === cell.table
-      ) {
-        if (cell.note.includes(parseInt(cellCompare.value))) {          
-          cell.note = cell.note.filter((value) => value !== parseInt(cellCompare.value));
-        }
-      }
-    });
+    let rowValues = getCells("row", cell.row).map((cell) => cell.value * 1);
+    let colValues = getCells("col", cell.col).map((cell) => cell.value * 1);
+    let rngValues = getCells("table", cell.table).map((cell) => cell.value * 1);
+
+    cell.note = cell.note.filter((value) => !rowValues.includes(value));
+    cell.note = cell.note.filter((value) => !colValues.includes(value));
+    cell.note = cell.note.filter((value) => !rngValues.includes(value));
   });
+
   sudokuTableValues.forEach((cell) => {
     if (cell.note.length === 1) {
       cell.value = cell.note[0];
@@ -112,13 +105,11 @@ const solveCellHaveOnlyValue = () => {
 
 // value in only one cell in a range
 const solveValueHaveOnlyOneCell = () => {
-  for (let i = 1; i < 10; i++) {
-    let rngValues = getCells("table", i);
+  for (let rngIndex = 1; rngIndex < 10; rngIndex++) {
+    let rngValues = getCells("table", rngIndex);
 
     for (let note = 1; note < 10; note++) {
-      let cells = rngValues.filter((cell) =>
-        cell.note.includes(note.toString())
-      );
+      let cells = rngValues.filter((cell) => cell.note.includes(note));
       if (cells.length === 1) {
         cells[0].value = note;
         cells[0].note = "";
@@ -135,26 +126,26 @@ const solveValueInOnlyRC = () => {
     for (let note = 1; note < 10; note++) {
       // check in row
       let rowListInRng = rngValues
-        .filter((cell) => cell.note.includes(note.toString()))
+        .filter((cell) => cell.note.includes(note))
         .reduce((prev, cur) => [...prev, cur.row], []);
 
       if (new Set(rowListInRng).size === 1) {
         let rowValues = getCells("row", rowListInRng[0]);
         rowValues.forEach((cell) => {
           if (cell.table !== i && !cell.value) {
-            cell.note = cell.note.filter((value) => value !== note.toString());
+            cell.note = cell.note.filter((value) => value !== note);
           }
         });
       }
       // check in col
       let colListInRng = rngValues
-        .filter((cell) => cell.note.includes(note.toString()))
+        .filter((cell) => cell.note.includes(note))
         .reduce((prev, cur) => [...prev, cur.col], []);
       if (new Set(colListInRng).size === 1) {
         let colValues = getCells("col", colListInRng[0]);
         colValues.forEach((cell) => {
           if (cell.table !== i && !cell.value) {
-            cell.note = cell.note.filter((value) => value !== note.toString());
+            cell.note = cell.note.filter((value) => value !== note);
           }
         });
       }
@@ -188,7 +179,7 @@ const solveValueGroupInRowCol = () => {
         rowValues.forEach((cell) => {
           if (cell.table !== rngIndex && !cell.value) {
             cell.note = cell.note.filter(
-              (value) => !noteRowList.includes(value.toString())
+              (value) => !noteRowList.includes(value)
             );
           }
         });
@@ -196,7 +187,7 @@ const solveValueGroupInRowCol = () => {
         rngValues.forEach((cell) => {
           if (!cell.value && cell.row !== i) {
             cell.note = cell.note.filter(
-              (value) => !noteRowList.includes(value.toString())
+              (value) => !noteRowList.includes(value)
             );
           }
         });
@@ -214,7 +205,7 @@ const solveValueGroupInRowCol = () => {
         colValues.forEach((cell) => {
           if (cell.table !== i && !cell.value) {
             cell.note = cell.note.filter(
-              (value) => !noteColList.includes(value.toString())
+              (value) => !noteColList.includes(value)
             );
           }
         });
@@ -222,7 +213,7 @@ const solveValueGroupInRowCol = () => {
         rngValues.forEach((cell) => {
           if (!cell.value && cell.col !== i) {
             cell.note = cell.note.filter(
-              (value) => !noteColList.includes(value.toString())
+              (value) => !noteColList.includes(value)
             );
           }
         });
@@ -231,7 +222,6 @@ const solveValueGroupInRowCol = () => {
   }
 };
 
-
 // create sudoku template
 createSudokuTemplate();
 
@@ -239,27 +229,18 @@ createSudokuTemplate();
 function solveSudoku() {
   // update value
   updateSudoku();
-  console.log('after update', sudokuTableValues);
+
   //   solveSudoku
   solveCellHaveOnlyValue();
-  // refreshSudoku()
-  // console.log(sudokuTableValues);
-  // // solve the value have only one cell
+
+  // solve the value have only one cell
   solveValueHaveOnlyOneCell();
 
-  // // refreshSudoku()
-  // console.log(sudokuTableValues);
+  //solve the value appear only in row or col of rng
+  solveValueInOnlyRC();
 
-  // //solve the value appear only in row or col of rng
-  // solveValueInOnlyRC();
-
-  // // refreshSudoku()
-  // console.log(sudokuTableValues);
-
-  // // solve group of value in one row, col
-  // solveValueGroupInRowCol();
-  // // refreshSudoku()
-  // console.log(sudokuTableValues);
+  // solve group of value in one row, col
+  solveValueGroupInRowCol();
 
   // solveValueHaveOnlyOneCell();
 
@@ -271,9 +252,8 @@ function solveSudoku() {
   });
 
   //   return result
-  showSudoku(sudokuTableValues);
+  showSudoku();
 }
-
 
 // button function
 const clearSudoku = () => {
@@ -281,7 +261,7 @@ const clearSudoku = () => {
     cell.value = "";
     cell.note = [];
   });
-  showSudoku(sudokuTableValues);
+  showSudoku();
 };
 
 const saveSudoku = () => {
@@ -290,7 +270,8 @@ const saveSudoku = () => {
 };
 
 const loadSudoku = () => {
-  showSudoku(JSON.parse(localStorage.getItem("saveSudoku")));
+  sudokuTableValues = [...JSON.parse(localStorage.getItem("saveSudoku"))];
+  showSudoku();
 };
 
 const startButton = document.querySelector(".start");
@@ -304,3 +285,11 @@ loadButton.addEventListener("click", loadSudoku);
 
 const clearButton = document.querySelector(".clear");
 clearButton.addEventListener("click", clearSudoku);
+
+// move cell
+
+function keyPress(e) {
+  if (e.key === "Escape") {
+    // write your logic here.
+  }
+}
