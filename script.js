@@ -1,14 +1,13 @@
 var sudokuTableValues = [];
 
 // set up sudoku Table
-const cellTemplate = (row, col) => {
-  let template = `
-        <div class="cell" row=${row} col=${col}>
+const cellTemplate = (row, col, isNew) => {
+  return (template = `
+        <div class="cell" row=${row} col=${col} isNew=${isNew}>
             <input type="text" class="cell-value">
             <div class="cell-note"></div>
         </div>
-    `;
-  return template;
+    `);
 };
 
 const validateCell = () => {
@@ -30,10 +29,11 @@ const createSudokuTemplate = () => {
       sudokuTableValues.push({
         row: row,
         col: col,
-        table: Math.floor((row - 1) / 3) * 3 + Math.floor((col - 1) / 3) + 1
+        isNew: false,
+        table: Math.floor((row - 1) / 3) * 3 + Math.floor((col - 1) / 3) + 1,
       });
 
-      sudokuTable = sudokuTable + cellTemplate(row, col);
+      sudokuTable = sudokuTable + cellTemplate(row, col, false);
     }
   }
   sudokuElement.innerHTML = sudokuTable;
@@ -41,15 +41,19 @@ const createSudokuTemplate = () => {
   validateCell();
 };
 
+// create sudoku template
+createSudokuTemplate();
+
+///////////////////////////////////////////////////////////////////////////
 // show and update
 const showSudoku = () => {
   sudokuTableValues.forEach((cell) => {
-    document
-      .querySelector(`.cell[row='${cell.row}'][col='${cell.col}']`)
-      .querySelector(".cell-value").value = cell.value;
-    document
-      .querySelector(`.cell[row='${cell.row}'][col='${cell.col}']`)
-      .querySelector(".cell-note").innerHTML = cell.note.toString();
+    let cellElement = document.querySelector(
+      `.cell[row='${cell.row}'][col='${cell.col}']`
+    );
+    cellElement.setAttribute("isNew", cell.isNew);
+    cellElement.querySelector(".cell-value").value = cell.value;
+    cellElement.querySelector(".cell-note").innerHTML = cell.note.toString();
   });
 };
 
@@ -62,6 +66,7 @@ const updateSudoku = () => {
       .querySelector(`.cell[row='${cell.row}'][col='${cell.col}']`)
       .querySelector(".cell-note").textContent;
     cell.value = value;
+    cell.isNew = false;
     if (note === "") {
       cell.note = [];
     } else {
@@ -70,12 +75,53 @@ const updateSudoku = () => {
   });
 };
 
+///////////////////////////////////////////////////////////////////
 // solve logic
 
 const getCells = (type, index) => {
   return sudokuTableValues.filter((cell) => cell[type] === index);
 };
 
+const clearNote = (cell, note) => {
+  let rowValues = getCells("row", cell.row);
+  let colValues = getCells("col", cell.col);
+  let rngValues = getCells("table", cell.table);
+
+  rowValues.forEach((cell) => {
+    cell.note = cell.note.filter((value) => value !== note);
+  });
+  colValues.forEach((cell) => {
+    cell.note = cell.note.filter((value) => value !== note);
+  });
+  rngValues.forEach((cell) => {
+    cell.note = cell.note.filter((value) => value !== note);
+  });
+};
+
+const putValueToCell = () => {
+  sudokuTableValues.forEach((cell) => {
+    if (cell.note.length === 1) {
+      cell.value = cell.note[0];
+      clearNote(cell, cell.note[0]);
+      cell.note = [];
+      cell.isNew = true;
+    }
+  });
+
+  for (let rngIndex = 1; rngIndex < 10; rngIndex++) {
+    let rngValues = getCells("table", rngIndex);
+
+    for (let note = 1; note < 10; note++) {
+      let cells = rngValues.filter((cell) => cell.note.includes(note));
+      if (cells.length === 1) {
+        cells[0].value = note;
+        clearNote(cells[0], cells[0].note);
+        cells[0].note = [];
+        cells[0].isNew = true;
+      }
+    }
+  }
+};
 // cell has only one value
 const solveCellHaveOnlyValue = () => {
   sudokuTableValues.forEach((cell) => {
@@ -95,27 +141,7 @@ const solveCellHaveOnlyValue = () => {
     cell.note = cell.note.filter((value) => !rngValues.includes(value));
   });
 
-  sudokuTableValues.forEach((cell) => {
-    if (cell.note.length === 1) {
-      cell.value = cell.note[0];
-      cell.note = "";
-    }
-  });
-};
-
-// value in only one cell in a range
-const solveValueHaveOnlyOneCell = () => {
-  for (let rngIndex = 1; rngIndex < 10; rngIndex++) {
-    let rngValues = getCells("table", rngIndex);
-
-    for (let note = 1; note < 10; note++) {
-      let cells = rngValues.filter((cell) => cell.note.includes(note));
-      if (cells.length === 1) {
-        cells[0].value = note;
-        cells[0].note = "";
-      }
-    }
-  }
+  putValueToCell();
 };
 
 // value in one row or col
@@ -151,6 +177,8 @@ const solveValueInOnlyRC = () => {
       }
     }
   }
+
+  putValueToCell();
 };
 
 // value in row, col of range
@@ -220,10 +248,8 @@ const solveValueGroupInRowCol = () => {
       }
     }
   }
+  putValueToCell();
 };
-
-// create sudoku template
-createSudokuTemplate();
 
 // start to solve sudoku
 function solveSudoku() {
@@ -233,23 +259,11 @@ function solveSudoku() {
   //   solveSudoku
   solveCellHaveOnlyValue();
 
-  // solve the value have only one cell
-  solveValueHaveOnlyOneCell();
-
   //solve the value appear only in row or col of rng
   solveValueInOnlyRC();
 
   // solve group of value in one row, col
   solveValueGroupInRowCol();
-
-  // solveValueHaveOnlyOneCell();
-
-  sudokuTableValues.forEach((cell) => {
-    if (cell.note.length === 1) {
-      cell.value = cell.note[0];
-      cell.note = "";
-    }
-  });
 
   //   return result
   showSudoku();
@@ -260,6 +274,7 @@ const clearSudoku = () => {
   sudokuTableValues.forEach((cell) => {
     cell.value = "";
     cell.note = [];
+    cell.isNew = false;
   });
   showSudoku();
 };
@@ -267,11 +282,13 @@ const clearSudoku = () => {
 const saveSudoku = () => {
   updateSudoku();
   localStorage.setItem("saveSudoku", JSON.stringify(sudokuTableValues));
+  alert("save success");
 };
 
 const loadSudoku = () => {
   sudokuTableValues = [...JSON.parse(localStorage.getItem("saveSudoku"))];
   showSudoku();
+  alert("load success");
 };
 
 const startButton = document.querySelector(".start");
@@ -288,8 +305,36 @@ clearButton.addEventListener("click", clearSudoku);
 
 // move cell
 
-function keyPress(e) {
-  if (e.key === "Escape") {
-    // write your logic here.
+const moveCell = (e) => {
+  if (!e.target.classList.contains("cell-value")) {
+    document.querySelector(".cell-value").focus();
+    return;
   }
-}
+  let curCell = e.path[1];
+  let curRow = curCell.getAttribute("row") * 1;
+  let curCol = curCell.getAttribute("col") * 1;
+
+  switch (e.key) {
+    case "ArrowUp":
+      curRow = curRow == 1 ? 9 : curRow - 1;
+      break;
+
+    case "ArrowDown":
+      curRow = curRow == 9 ? 1 : curRow + 1;
+      break;
+
+    case "ArrowLeft":
+      curCol = curCol == 1 ? 9 : curCol - 1;
+      break;
+
+    case "ArrowRight":
+      curCol = curCol == 9 ? 1 : curCol + 1;
+      break;
+    default:
+  }
+
+  document
+    .querySelector(`.cell[row='${curRow}'][col='${curCol}'] .cell-value`)
+    .focus();
+};
+document.addEventListener("keydown", moveCell);

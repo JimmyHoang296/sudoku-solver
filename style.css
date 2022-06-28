@@ -16,19 +16,27 @@ body {
 
 h1 {
   margin-top: 20px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
 }
 
+p{
+    margin-top: 10px;
+}
 .sudoku-table {
+    margin-top: 20px;
   display: grid;
   grid-template-columns: repeat(9, 1fr);
 }
 
 .cell {
   border: 1px solid #ddd;
-  width: 80px;
-  height: 80px;
+  width: 50px;
+  height: 50px;
   position: relative;
+}
+.cell[isNew="true"]{
+    background-color: rgb(150, 255, 155);
 }
 
 .cell[row="1"],
@@ -60,6 +68,7 @@ h1 {
   text-align: center;
   font-size: 32px;
   font-weight: 700;
+  background-color: transparent;
 }
 
 .cell-note{
